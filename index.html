@@ -1,241 +1,225 @@
 <!doctype html>
 <html lang='en'>
-  <head>
+<head>
     <link rel='manifest' href='manifest.json'>
     <link rel='shortcut icon' href='assets/favicon.svg'>
 
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
 
     <title>Passphrase Generator</title>
 
     <!-- upstream: https://github.com/atoponce/webpassgen -->
-  </head>
-  <body>
-    <main>
-      <section class="flex justify-center p-4">
+</head>
+<body>
+<main>
+    <section class="flex justify-center p-4">
         <article class="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
-          <h2 class="text-2xl font-bold mb-4">Generate Password</h2>
-          <div id="password-strength" class="mb-6">
-            <input id="input" type="range" min="48" max="128" step="8" value="72"
-                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                   oninput="updateSlider(parseInt(value)); generatePassword();">
-            <label for="input" class="flex items-center mt-2 text-gray-600">
-              <span>Password strength: </span>
-              <output id="output" for="value" class="mx-1">72</output>
-              <span> bits</span>
-            </label>
-          </div>
-          <button class="pass-button w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
-                  value="Generate" onclick="generatePassword();">Generate</button>
-          <div id="alt-pass" class="password break-all p-4 bg-gray-100 rounded mb-4 min-h-[40px]"></div>
-          <div id="alt-overlay" class="statistics bg-gray-50 rounded p-4">
-            <dl class="grid grid-cols-2 gap-2">
-              <dt class="text-gray-600">Length:</dt>
-              <dd id="alt-length" class="text-right"></dd>
-              <dt class="text-gray-600">Security:</dt>
-              <dd id="alt-entropy" class="text-right"></dd>
-              <dt class="text-gray-600">Set size:</dt>
-              <dd id="alt-set-size" class="text-right"></dd>
-            </dl>
-          </div>
+            <h2 class="text-2xl text-center font-bold mb-4">Generate Password</h2>
+            <div id="target-length" class="mb-6">
+                <input id="input" type="range" min="12" max="48" step="2" value="20"
+                       class="h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer w-full mb-6"
+                       oninput="updateNumber(value); generatePassword();">
+                <div class="flex items-center justify-between">
+                    <div class="flex gap-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="separator" value="-" checked class="form-radio"
+                                   onchange="generatePassword();">
+                            <span class="ml-2 font-mono bg-gray-100 px-2 rounded">-</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="separator" value="_" class="form-radio"
+                                   onchange="generatePassword();">
+                            <span class="ml-2 font-mono bg-gray-100 px-2 rounded">_</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="separator" value=" " class="form-radio"
+                                   onchange="generatePassword();">
+                            <span class="ml-2 font-mono bg-gray-100 px-2 rounded">&nbsp;</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="separator" value="." class="form-radio"
+                                   onchange="generatePassword();">
+                            <span class="ml-2 font-mono bg-gray-100 px-2 rounded">.</span>
+                        </label>
+                    </div>
+                    <label for="input" class="flex items-center text-gray-600 whitespace-nowrap font-mono">
+                        <input type="number" id="output" min="12" max="48" step="2" value="20"
+                               class="mx-1 w-16 text-right font-mono"
+                               oninput="updateNumber(this.value);">
+                        <span id="word-label"> chars</span>
+                    </label>
+                </div>
+            </div>
+            <button class="pass-button w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
+                    value="Generate" onclick="generatePassword();">Generate
+            </button>
+            <div id="alt-pass" class="password break-all p-4 bg-gray-100 rounded min-h-[40px] font-mono"></div>
         </article>
-      </section>
-    </main>
+    </section>
+</main>
 
-    <script>
-      /**
-       * An input slider ranging from values 48 to 128 stepping every 8.
-       * @param {number} n - An 8-bit value
-       */
-      function updateSlider(n) {
-        const passClass = document.querySelector('.password')
+<script>
+    const altProps = {
+        "passId": document.getElementById('alt-pass'),
+    }
 
-        passClass.classList.remove('p48')
-        passClass.classList.remove('p56')
-        passClass.classList.remove('p64')
-        passClass.classList.remove('p72')
-
-        if (n === 48) {
-          passClass.classList.add('p48')
-        } else if (n === 56) {
-          passClass.classList.add('p56')
-        } else if (n === 64) {
-          passClass.classList.add('p64')
-        } else if (n >= 72) {
-          passClass.classList.add('p72')
-        }
-
+    /**
+     * An input slider ranging from values 48 to 128 stepping every 8.
+     * @param {number} n - An 8-bit value
+     */
+    function updateNumber(n) {
+        n = Math.min(Math.max(n, 12), 48)
+        document.querySelector('#input').value = n
         document.querySelector('#output').value = n
-        localStorage.setItem('security', n)
-      }
+        generatePassword()
+    }
 
-      /**
-       * Remove all duplicates from an array. Case-sensitive.
-       * @param {Array} list - An array of strings or numbers which might contain duplicates.
-       * @return {Array} - The array with duplicates removed.
-       */
-      function uniquesOnly(list) {
-        return [...new Set(list)] // enforce unique elements in array
-      }
-
-      /** Return selected entropy (56, 64, 72, 80, 88, 96, 104, 112, 120, or 128). */
-      function getEntropy() {
-        return parseInt(document.querySelector('#output').value)
-      }
-
-      /**
-       * Add a checkbox to use entropy if its present in localStorage.entropy.
-       * Mozilla will not store localStorage key values to disk under the file:// protocol.
-       * See https://bugzilla.mozilla.org/show_bug.cgi?id=507361 for more information.
-       */
-      function toggleEntropyVisibility() {
-        const classes = document.getElementsByClassName('use-entropy')
-
-        if (localStorage.hasOwnProperty('entropy')) {
-          if (JSON.parse(localStorage.entropy).length > 0) {
-            for (let i = 0; i < classes.length; i++) {
-              classes[i].style.visibility = 'visible'
-              classes[i].children[2].innerText = JSON.parse(localStorage.entropy).length
-            }
-          } else {
-            for (let i = 0; i < classes.length; i++) {
-              classes[i].style.visibility = 'hidden'
-            }
-          }
-        }
-      }
-
-      /**
-       * A cryptographically secure uniform random number generator.
-       * @param {number} count - The max number a random number can be.
-       * @param {boolean} useEntropy - Whether or not to use the data in localStorage.entropy.
-       * @return {number} - Uniform random number.
-       */
-      function secRand(count, useEntropy) {
+    /**
+     * A cryptographically secure uniform random number generator.
+     * @param {number} count - The max number a random number can be.
+     * @return {number} - Uniform random number.
+     */
+    function secRand(count = 1) {
         let num = 0
         const min = 2 ** 32 % count
         const rand = new Uint32Array(1)
 
-        if (useEntropy) {
-          const entropy = JSON.parse(localStorage.entropy)
-
-          if (entropy.length > 0) {
-            num = entropy[0]
-            entropy.shift()
-            localStorage.entropy = JSON.stringify(entropy)
-          }
-        }
-
         do {
-          num ^= crypto.getRandomValues(rand)[0]
+            num ^= crypto.getRandomValues(rand)[0]
         } while (num < min)
 
-        toggleEntropyVisibility()
-
         return num % count
-      }
+    }
 
-      /**
-       * The critical password generation function. Generates a password from a given set of data.
-       * @param {number} len - How many characters/words to pick.
-       * @param {string|Array} set - The data set to pick from.
-       * @param {boolean} spaces - Whether to space-separate the password.
-       * @return {string} - The generated password.
-       */
-      function generatePass(len, set, spaces) {
-        let pass = ''
-        let passArr = ''
+    function generatePassword() {
+        let targetLength = parseInt(document.getElementById('input').value);
+        let separator = document.querySelector('input[name="separator"]:checked').value;
+        let pass = "";
 
-        if (typeof set === 'string') {
-          passArr = set.split('')
-        } else {
-          passArr = set
+        for (let i = 0; i < 20; i++) {
+            pass = generatePasswordWithTargetLength(targetLength, separator, wordLists);
+            if (pass) break;
+        }
+        if (!pass) pass = "[Couldn't build a password]";
+        altProps.passId.innerText = pass;
+    }
+
+    function randomFromList(list) {
+        return list[Math.floor(secRand(list.length))];
+    }
+
+    function randomDigit() {
+        return String(Math.floor(secRand(10)));
+    }
+
+    function shuffle(arr) {
+        return arr.map(v => ([v, secRand()])).sort((a, b) => a[1] - b[1]).map(a => a[0]);
+    }
+
+    function generatePasswordWithTargetLength(targetLength, separator, wordLists) {
+        const shortLens = [2, 3], midLens = [4, 5, 6, 7], longLens = [8, 9];
+        let tries = 0, found = false, bestCombo = null, bestDelta = 999;
+
+        while (!found && tries < 200) {
+            let wordCount = targetLength <= 20 ? 3 + Math.floor(secRand(3)) : 4 + Math.floor(secRand(3)); // 3-5 or 4-6 words
+            let picks = [], usedShort = 0, usedLong = 0;
+            // Up to 2 short if short password
+            let shortWordProb = targetLength <= 20 ? 0.9 : 0.7;
+
+            while (usedShort < (targetLength <= 20 ? 2 : 1) && secRand() < shortWordProb) {
+                picks.push(randomFromList(wordLists[randomFromList(shortLens)]));
+                usedShort++;
+            }
+
+            // 1 long if allowed and not short password
+            if (targetLength > 20 && usedLong < 1 && secRand() < 0.5) {
+                picks.push(randomFromList(wordLists[randomFromList(longLens)]));
+                usedLong++;
+            }
+
+            // the rest middle lengths
+            while (picks.length < wordCount) {
+                picks.push(randomFromList(wordLists[randomFromList(midLens)]));
+            }
+
+            picks = shuffle(picks);
+            // Account for separator length
+            let sumLen = picks.reduce((a, w) => a + w.length, 0) + (picks.length - 1) * separator.length;
+            let delta = targetLength - sumLen;
+
+            if (delta >= 0 && delta < bestDelta) {
+                bestCombo = picks.slice();
+                bestDelta = delta;
+                if (delta <= 3) found = true;
+            }
+
+            tries++;
         }
 
-        for (let i = len; i > 0; i--) {
-          if (spaces) {
-            pass += passArr[secRand(set.length, false)]
-            pass += ' '
-          } else {
-            pass += passArr[secRand(set.length, false)]
-          }
+        // If no valid, fall back
+        if (!bestCombo) return null;
+        let words = bestCombo.slice();
+        let substTable = {'a': '4', 'e': '3', 'g': '9', 'i': '1', 'l': '1', 'o': '0', 'r': '2', 's': '5', 't': '7'};
+        let substitutionDone = false, substituteIndex = -1;
+
+        for (let i = 0; i < words.length; i++) {
+            if (!substitutionDone) {
+                let entries = Object.entries(substTable).filter(([k]) => words[i].includes(k));
+                if (entries.length > 0) {
+                    let [letter, subNumber] = randomFromList(entries);
+                    words[i] = words[i].replace(letter, subNumber).toUpperCase();
+                    substitutionDone = true;
+                    substituteIndex = i;
+                }
+            }
         }
 
-        return pass
-      }
+        if (!substitutionDone) {
+            let idx = randomFromList([...Array(words.length - 2).keys()].map(x => x + 1)); // not first/last
+            words[idx] = (secRand() < 0.5 ? randomDigit()+words[idx] : words[idx]+randomDigit()).toUpperCase()
+            substituteIndex = idx;
+        }
 
-      const altProps = {
-        "passId": document.getElementById('alt-pass'),
-        "passLength": document.getElementById('alt-length'),
-        "passEntropy": document.getElementById('alt-entropy'),
-        "setSize": document.getElementById('alt-set-size'),
-      }
+        // Padding stage
+        let paddable = [];
+        for (let i = 1; i < words.length - 1; i++) if (i !== substituteIndex) paddable.push(i);
+        paddable = shuffle(paddable)
+        let pads = 0, assembled = words.join(separator);
+        while (assembled.length < targetLength && pads < 2 && paddable.length > 0) {
+            let idx = paddable.shift();
+            words[idx] = (Math.random() < 0.5 ? randomDigit()+words[idx] : words[idx]+randomDigit()).toUpperCase()
+            assembled = words.join(separator);
+            pads++;
+        }
 
-      function generatePassword() {
-        let pass = ''
-        let wordList = []
+        // Make sure not starting/ending with a digit
+        let shuffles = 0
+        while (/^\d|\d$/.test(assembled.replace(new RegExp(separator, 'g'), '')) && shuffles < 4) {
+            words = shuffle(words)
+            assembled = words.join(separator)
+            shuffles++
+        }
 
-        wordList = wordList.concat(alternatePgp)
-        wordList = wordList.concat(alternatePokerware)
-        wordList = wordList.concat(alternateVAN[0])
-        wordList = wordList.concat(alternateVAN[1])
-        wordList = wordList.concat(alternateVAN[2])
-        wordList = wordList.concat(alternateWordle)
-        wordList = wordList.concat(bitcoinEN)
-        wordList = wordList.concat(dicewareNLP[0])
-        wordList = wordList.concat(dicewareNLP[1])
-        wordList = wordList.concat(effDistant)
-        wordList = wordList.concat(effGameOfThrones)
-        wordList = wordList.concat(effHarryPotter)
-        wordList = wordList.concat(effLong)
-        wordList = wordList.concat(effShort)
-        wordList = wordList.concat(effStarTrek)
-        wordList = wordList.concat(effStarWars)
-        wordList = wordList.concat(moneroEN)
-        wordList = wordList.map(v => v.toLowerCase())
+        if (/^\d|\d$/.test(assembled.replace(new RegExp(separator, 'g'), '')))
+            return null
 
-        wordList = uniquesOnly(wordList)
+        if (assembled.length === targetLength) return assembled;
+        return null;
+    }
+</script>
 
-        const entropy = getEntropy()
-        const len = Math.ceil(entropy / Math.log2(wordList.length))
+<script src='js/lists.js'></script>
+<script src='js/tailwind.js'></script>
 
-        pass = generatePass(len, wordList, true).trim()
-        pass = pass.replace(/ /g, '-')
-        altProps.passId.classList.remove('acronym')
-        altProps.passId.classList.remove('colors')
-        altProps.passEntropy.innerText = Math.floor(len * Math.log2(wordList.length)) + ' bits'
-        altProps.passId.innerText = pass
-        altProps.passLength.innerText = [...pass].length + ' characters'
-        altProps.setSize.innerText = wordList.length.toLocaleString() + ' words'
-      }
-    </script>
+<script>
+    "use strict"
 
-    <script src='js/tailwind.js'></script>
+    document.body.lang = navigator.language
 
-    <script src='lists/alternatePgp.js'></script>
-    <script src='lists/alternatePokerware.js'></script>
-    <script src='lists/alternateVAN.js'></script>
-    <script src='lists/alternateWordle.js'></script>
-    <script src='lists/bitcoinEN.js'></script>
-    <script src='lists/dicewareNLP.js'></script>
-    <script src='lists/effDistant.js'></script>
-    <script src='lists/effGameOfThrones.js'></script>
-    <script src='lists/effHarryPotter.js'></script>
-    <script src='lists/effLong.js'></script>
-    <script src='lists/effShort.js'></script>
-    <script src='lists/effStarTrek.js'></script>
-    <script src='lists/effStarWars.js'></script>
-    <script src='lists/moneroEN.js'></script>
-
-    <script>
-      "use strict"
-
-      document.body.lang = navigator.language
-
-      window.onload = function() {
+    window.onload = function () {
         generatePassword()
-      }
-    </script>
-  </body>
+    }
+</script>
+</body>
 </html>
