@@ -54,7 +54,8 @@
             <button class="pass-button w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded mb-4"
                     value="Generate" onclick="generatePassword();">Generate
             </button>
-            <div id="alt-pass" class="password break-all p-4 bg-gray-100 rounded min-h-[40px] font-mono"></div>
+            <div id="alt-pass"
+                 class="password break-all p-4 bg-gray-100 rounded h-[65px] font-mono text-center overflow-x-auto whitespace-nowrap flex items-center justify-center"></div>
         </article>
     </section>
 </main>
@@ -64,10 +65,6 @@
         "passId": document.getElementById('alt-pass'),
     }
 
-    /**
-     * An input slider ranging from values 48 to 128 stepping every 8.
-     * @param {number} n - An 8-bit value
-     */
     function updateNumber(n) {
         n = Math.min(Math.max(n, 12), 48)
         document.querySelector('#input').value = n
@@ -75,11 +72,19 @@
         generatePassword()
     }
 
-    /**
-     * A cryptographically secure uniform random number generator.
-     * @param {number} count - The max number a random number can be.
-     * @return {number} - Uniform random number.
-     */
+    function fitText(element, minSize=12, maxSize=22) {
+        let size = maxSize;
+        element.style.whiteSpace = "nowrap";
+        element.style.fontSize = size + "px";
+
+        // Try shrinking font until it fits
+        // and use scrollWidth to check for overflow
+        while (element.scrollWidth > element.offsetWidth && size > minSize) {
+            size--;
+            element.style.fontSize = size + "px";
+        }
+    }
+
     function secRand(count = 1) {
         let num = 0
         const min = 2 ** 32 % count
@@ -103,6 +108,7 @@
         }
         if (!pass) pass = "[Couldn't build a password]";
         altProps.passId.innerText = pass;
+        fitText(altProps.passId)
     }
 
     function randomFromList(list) {
@@ -122,7 +128,7 @@
         let tries = 0, found = false, bestCombo = null, bestDelta = 999;
 
         while (!found && tries < 200) {
-            let wordCount = targetLength <= 20 ? 3 + Math.floor(secRand(3)) : 4 + Math.floor(secRand(3)); // 3-5 or 4-6 words
+            let wordCount = targetLength <= 20 ? 2 + Math.floor(secRand(4)) : 4 + Math.floor(secRand(5)); // 2-6 or 4-8 words
             let picks = [], usedShort = 0, usedLong = 0;
             // Up to 2 short if short password
             let shortWordProb = targetLength <= 20 ? 0.9 : 0.7;
@@ -132,8 +138,9 @@
                 usedShort++;
             }
 
-            // 1 long if allowed and not short password
-            if (targetLength > 20 && usedLong < 1 && secRand() < 0.5) {
+            // Up to two long words if length > 40, otherwise one long word if length > 20
+            let maxLong = targetLength > 40 ? 2 : (targetLength > 20 ? 1 : 0);
+            while (usedLong < maxLong && secRand() < 0.5) {
                 picks.push(randomFromList(wordLists[randomFromList(longLens)]));
                 usedLong++;
             }
@@ -220,6 +227,17 @@
     window.onload = function () {
         generatePassword()
     }
+
+    const passEl = document.getElementById("alt-pass");
+    passEl.addEventListener("click", function() {
+        if (window.getSelection) {
+            let range = document.createRange();
+            range.selectNodeContents(passEl);
+            let sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+    });
 </script>
 </body>
 </html>
