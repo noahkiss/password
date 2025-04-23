@@ -17,7 +17,7 @@
         <article class="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full">
             <h2 class="text-2xl text-center font-bold mb-4">Generate Password</h2>
             <div id="target-length" class="mb-6">
-                <input id="input" type="range" min="12" max="48" step="2" value="20"
+                <input id="input" type="range" min="12" max="64" step="2" value="20"
                        class="h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer w-full mb-6"
                        oninput="updateNumber(value); generatePassword();">
                 <div class="flex items-center justify-between">
@@ -44,7 +44,7 @@
                         </label>
                     </div>
                     <label for="input" class="flex items-center text-gray-600 whitespace-nowrap font-mono">
-                        <input type="number" id="output" min="12" max="48" step="2" value="20"
+                        <input type="number" id="output" min="12" max="64" step="2" value="20"
                                class="mx-1 w-16 text-right font-mono"
                                oninput="updateNumber(this.value);">
                         <span id="word-label"> chars</span>
@@ -55,7 +55,7 @@
                     value="Generate" onclick="generatePassword();">Generate
             </button>
             <div id="alt-pass"
-                 class="password break-all p-4 bg-gray-100 rounded h-[65px] font-mono text-center overflow-x-auto whitespace-nowrap flex items-center justify-center"></div>
+                 class="password break-all p-4 bg-gray-100 rounded h-[65px] font-mono text-center overflow-hidden whitespace-nowrap flex items-center justify-center"></div>
         </article>
     </section>
 </main>
@@ -139,7 +139,7 @@
             }
 
             // Up to two long words if length > 40, otherwise one long word if length > 20
-            let maxLong = targetLength > 40 ? 2 : (targetLength > 20 ? 1 : 0);
+            let maxLong = targetLength > 52 ? 3 : (targetLength > 40 ? 2 : (targetLength > 20 ? 1 : 0));
             while (usedLong < maxLong && secRand() < 0.5) {
                 picks.push(randomFromList(wordLists[randomFromList(longLens)]));
                 usedLong++;
